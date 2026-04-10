@@ -1,18 +1,55 @@
-/.idea
-/api/__pycache__
-/api/parsing/__pycache__
-/api/dataset/__pycache__
-/api/model/__pycache__
-/api/trainer/__pycache__
+# IDE / editor
+.idea/
+.vscode/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local backup / temp files
+*.bak
+*.bak2
+*_bak
+*_bak2
+*.swp
+*.swo
+
+# Test / trash
+/test/
+api/trash.py
+
+# Runtime outputs
+result/
+example/result/
+script/visualization/figs/
+
+# Model / training artifacts
+*.pth
+*.pt
+*.ckpt
+*.onnx
+*.npy
+*.npz
+
+# Logs / metrics
+*.log
+metrics*.json
+
+# Compressed packages / archives
+*.zip
+*.rar
+*.7z
+*.tar
+*.gz
+
+# Large generated data that is not needed in repo
+/data/5-min/5min/
+
+# Optional: if these two files are intentionally excluded, keep them ignored
 data/AMS/distance.csv
 data/AMS/duration.csv
-/example/result
-api/trash.py
-/api/federated/__pycache__
-/api/config/__pycache__
-/test
-data/CHARGED_v1.zip
-data/CHARGED_v2.zip
-/script/visualization/figs
-/data/5-min/5min
-data/Hourly.zip

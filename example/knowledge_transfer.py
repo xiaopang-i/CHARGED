@@ -11,8 +11,8 @@ Main entry point for federated EV charging demand prediction across multiple cit
 This script parses federated learning arguments, initializes datasets, clients, and server,
 then runs global training and localization procedures.
 """
-import warnings
 
+import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 import os
@@ -26,11 +26,11 @@ if parent_dir not in sys.path:
 
 from api.parsing.federated import federated_parse_args
 from api.model.config import PredictionModel
+from api.utils import random_seed, Logger, get_data_paths
 from api.dataset.distributed import DistributedEVDataset
 from api.federated.client import CommonClient
 from api.federated.server import CommonServer
 from api.trainer.federated import ClientTrainer
-from api.utils import random_seed, Logger, get_data_paths
 
 
 def main():
@@ -50,12 +50,14 @@ def main():
     if args.pred_type == 'site':
         base = (
             f"{args.output_path}{args.pred_type}/{args.city}/"
-            f"{args.model}-{args.feature}-{args.auxiliary}-{args.seq_l}-{args.pre_len}-{args.max_sites}-{args.eval_percentage}"
+            f"{args.model}-{args.feature}-{args.auxiliary}-"
+            f"{args.seq_l}-{args.pre_len}-{args.max_sites}-{args.eval_percentage}"
         )
     else:
         base = (
             f"{args.output_path}{args.pred_type}/{args.city}/"
-            f"{args.model}-{args.feature}-{args.auxiliary}-{args.seq_l}-{args.pre_len}-{args.max_sites}-{args.eval_city}"
+            f"{args.model}-{args.feature}-{args.auxiliary}-"
+            f"{args.seq_l}-{args.pre_len}-{args.max_sites}-{args.eval_city}"
         )
 
     # Ensure unique directory
@@ -92,9 +94,12 @@ def main():
     )
 
     print(
-        f"Running federated evaluation on {args.city} with model={args.model}, "
-        f"feature={args.feature}, auxiliary={args.auxiliary}, pred_type={args.pred_type}"
+        f"Running federated evaluation on {args.city} with "
+        f"model={args.model}, feature={args.feature}, "
+        f"auxiliary={args.auxiliary}, pred_type={args.pred_type}"
     )
+    print(f"Device: {device}")
+    print(f"Output dir: {out_dir}")
 
     # Instantiate training clients
     train_clients = []
@@ -103,7 +108,7 @@ def main():
     eval_clients_id = []
 
     for client_id, data_dict in ev_dataset.training_clients_data.items():
-        client_path = os.path.join(out_dir, str(client_id))
+        client_path = os.path.join(out_dir, client_id)
         os.makedirs(client_path, exist_ok=True)
 
         train_clients.append(
@@ -120,7 +125,7 @@ def main():
                 batch_size=args.batch_size,
                 device=device,
                 save_path=client_path,
-                support_rate=1,
+                support_rate=1.0,
             )
         )
         train_clients_id.append(client_id)
@@ -129,7 +134,7 @@ def main():
     print(train_clients_id)
 
     for client_id, data_dict in ev_dataset.eval_clients_data.items():
-        client_path = os.path.join(out_dir, str(client_id))
+        client_path = os.path.join(out_dir, client_id)
         os.makedirs(client_path, exist_ok=True)
 
         eval_clients.append(
