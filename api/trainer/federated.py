@@ -13,12 +13,11 @@ Classes:
 """
 import json
 import os
-from typing import Optional, Any, Generator
-
+from typing import Optional, Any, Generator, Union
 import numpy as np
 import torch
 from tqdm import tqdm
-
+from torch.utils.data import DataLoader
 from api.utils import calculate_regression_metrics, convert_numpy
 
 """
@@ -56,7 +55,7 @@ class ClientTrainer(object):
             extra_feat_tag: bool,
             model: Any,
             save_path: str,
-            scaler: float | np.ndarray,
+            scaler: Union[float, np.ndarray],
             device: torch.device,
     ) -> None:
         """
@@ -110,11 +109,15 @@ class ClientTrainer(object):
         for _ in tqdm(range(epoch), desc='Training'):
             for feat, label, extra_feat in self.train_loader:
                 torch.cuda.empty_cache()
+                feat = feat.to(self.device, non_blocking=True)
+                label = label.to(self.device, non_blocking=True)
                 if not self.extra_feat_tag:
                     extra_feat = None
+                else:
+                    extra_feat = extra_feat.to(self.device, non_blocking=True)
                 self.optim.zero_grad()
                 preds = self.ev_model.model(feat, extra_feat)
-                # Align shapes for loss computation
+            # Align shapes for loss computation
                 if preds.shape != label.shape:
                     loss = self.loss_func(preds.unsqueeze(-1), label)
                 else:
@@ -150,11 +153,14 @@ class ClientTrainer(object):
         if model_path:
             self.ev_model.load_model(model_path=model_path)
         self.ev_model.model.eval()
-
         for feat, label, extra_feat in self.test_loader:
             torch.cuda.empty_cache()
+            feat = feat.to(self.device, non_blocking=True)
+            label = label.to(self.device, non_blocking=True)
             if not self.extra_feat_tag:
                 extra_feat = None
+            else:
+                extra_feat = extra_feat.to(self.device, non_blocking=True)
             with torch.no_grad():
                 preds = self.ev_model.model(feat, extra_feat)
                 if preds.shape != label.shape:

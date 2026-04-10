@@ -5,6 +5,7 @@
 # @Last Modified By   : GZH
 # @Last Modified Time : 2025/4/13 19:19
 
+
 """
 Main entry point for federated EV charging demand prediction across multiple cities.
 
@@ -26,11 +27,12 @@ if parent_dir not in sys.path:
 
 from api.parsing.federated import federated_parse_args
 from api.model.config import PredictionModel
+from api.trainer.common import PredictionTrainer
+from api.utils import random_seed, get_n_feature, Logger, get_data_paths
 from api.dataset.distributed import DistributedEVDataset
 from api.federated.client import CommonClient
 from api.federated.server import CommonServer
 from api.trainer.federated import ClientTrainer
-from api.utils import random_seed, Logger, get_data_paths
 
 
 def main():
@@ -48,15 +50,11 @@ def main():
 
     # Construct base output path
     if args.pred_type == 'site':
-        base = (
-            f"{args.output_path}{args.pred_type}/{args.city}/"
-            f"{args.model}-{args.feature}-{args.auxiliary}-{args.seq_l}-{args.pre_len}-{args.max_sites}-{args.eval_percentage}"
-        )
+        base = f"{args.output_path}{args.pred_type}/{args.city}/" + \
+               f"{args.model}-{args.feature}-{args.auxiliary}-{args.seq_l}-{args.pre_len}-{args.max_sites}-{args.eval_percentage}"
     else:
-        base = (
-            f"{args.output_path}{args.pred_type}/{args.city}/"
-            f"{args.model}-{args.feature}-{args.auxiliary}-{args.seq_l}-{args.pre_len}-{args.max_sites}-{args.eval_city}"
-        )
+        base = f"{args.output_path}{args.pred_type}/{args.city}/" + \
+               f"{args.model}-{args.feature}-{args.auxiliary}-{args.seq_l}-{args.pre_len}-{args.max_sites}-{args.eval_city}"
 
     # Ensure unique directory
     out_dir = base
@@ -64,7 +62,7 @@ def main():
     while os.path.exists(out_dir):
         count += 1
         out_dir = f"{base}#{count}/"
-    os.makedirs(out_dir, exist_ok=True)
+    os.makedirs(out_dir)
 
     # Setup logging
     sys.stdout = Logger(os.path.join(out_dir, 'logging.txt'))
@@ -74,11 +72,7 @@ def main():
     random_seed(args.seed)
 
     # Prepare data paths per city
-    data_paths = get_data_paths(
-        ori_path=args.data_path,
-        cities=args.city,
-        suffix='_remove_zero'
-    )
+    data_paths = get_data_paths(ori_path=args.data_path, cities=args.city, suffix='_remove_zero')
 
     # Load distributed dataset
     ev_dataset = DistributedEVDataset(
@@ -91,69 +85,61 @@ def main():
         max_sites=args.max_sites,
     )
 
-    print(
-        f"Running federated evaluation on {args.city} with model={args.model}, "
-        f"feature={args.feature}, auxiliary={args.auxiliary}, pred_type={args.pred_type}"
-    )
+    print(f"Running federated evaluation on {args.city} with model={args.model}, feature={args.feature}, "
+          f"auxiliary={args.auxiliary}, pred_type={args.pred_type}")
 
     # Instantiate training clients
-    train_clients = []
-    train_clients_id = []
-    eval_clients = []
-    eval_clients_id = []
+train_clients = []
+train_clients_id = []
+eval_clients = []
+eval_clients_id = []
 
-    for client_id, data_dict in ev_dataset.training_clients_data.items():
-        client_path = os.path.join(out_dir, str(client_id))
-        os.makedirs(client_path, exist_ok=True)
-
-        train_clients.append(
-            CommonClient(
-                client_id=client_id,
-                data_dict=data_dict,
-                scaler=ev_dataset.city_scalers[client_id[:3]],
-                model_module=PredictionModel,
-                trainer_module=ClientTrainer,
-                seq_l=args.seq_l,
-                pre_len=args.pre_len,
-                model_name=args.model,
-                n_fea=ev_dataset.n_fea,
-                batch_size=args.batch_size,
-                device=device,
-                save_path=client_path,
-                support_rate=1,
-            )
+for client_id, data_dict in ev_dataset.training_clients_data.items():
+    client_path = os.path.join(out_dir, str(client_id))
+    os.makedirs(client_path, exist_ok=True)
+    train_clients.append(
+        CommonClient(
+            client_id=client_id,
+            data_dict=data_dict,
+            scaler=ev_dataset.city_scalers[client_id[:3]],
+            model_module=PredictionModel,
+            trainer_module=ClientTrainer,
+            seq_l=args.seq_l,
+            pre_len=args.pre_len,
+            model_name=args.model,
+            n_fea=ev_dataset.n_fea,
+            batch_size=args.batch_size,
+            device=device,
+            save_path=client_path,
+            support_rate=1,
         )
-        train_clients_id.append(client_id)
+    )
+    train_clients_id.append(client_id)
 
-    print('Training on:')
-    print(train_clients_id)
+print('Training on:')
+print(train_clients_id)
 
-    for client_id, data_dict in ev_dataset.eval_clients_data.items():
-        client_path = os.path.join(out_dir, str(client_id))
-        os.makedirs(client_path, exist_ok=True)
-
-        eval_clients.append(
-            CommonClient(
-                client_id=client_id,
-                data_dict=data_dict,
-                scaler=ev_dataset.city_scalers[client_id[:3]],
-                model_module=PredictionModel,
-                trainer_module=ClientTrainer,
-                seq_l=args.seq_l,
-                pre_len=args.pre_len,
-                model_name=args.model,
-                n_fea=ev_dataset.n_fea,
-                batch_size=args.batch_size,
-                device=device,
-                save_path=client_path,
-                support_rate=0.5,
-            )
+for client_id, data_dict in ev_dataset.eval_clients_data.items():
+    client_path = os.path.join(out_dir, str(client_id))
+    os.makedirs(client_path, exist_ok=True)
+    eval_clients.append(
+        CommonClient(
+            client_id=client_id,
+            data_dict=data_dict,
+            scaler=ev_dataset.city_scalers[client_id[:3]],
+            model_module=PredictionModel,
+            trainer_module=ClientTrainer,
+            seq_l=args.seq_l,
+            pre_len=args.pre_len,
+            model_name=args.model,
+            n_fea=ev_dataset.n_fea,
+            batch_size=args.batch_size,
+            device=device,
+            save_path=client_path,
+            support_rate=0.5,
         )
-        eval_clients_id.append(client_id)
-
-    print('Evaluation on:')
-    print(eval_clients_id)
-
+    )
+    eval_clients_id.append(client_id):
     ev_server = CommonServer(
         train_clients=train_clients,
         eval_clients=eval_clients,
@@ -165,7 +151,6 @@ def main():
             pre_len=args.pre_len,
         ),
     )
-
     ev_server.train(global_epochs=args.global_epoch, local_epochs=args.local_epoch)
     ev_server.localize(now_epoch=args.global_epoch, deploy_epochs=args.deploy_epoch)
 

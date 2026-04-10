@@ -51,7 +51,7 @@ def federated_parse_args():
         help="City abbreviation reserved for evaluation."
     )
     parser.add_argument(
-        '--max_site', type=int, default=200,
+        '--max_sites', type=int, default=200,
         help="Maximum number of siteer city."
     )
     parser.add_argument(

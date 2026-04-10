@@ -615,16 +615,16 @@ class FreTS(nn.Module):
 
         # Complex multiplication: (a+bi)(c+di) = (ac-bd) + (ad+bc)i
         o1_real = F.relu(
-            torch.einsum('bijd,dd->bijd', x.real, r) - \  # Real part: ac
-            torch.einsum('bijd,dd->bijd', x.imag, i) + \  # Real part: -bd
-            rb  # Real bias
-        )
+                    torch.einsum('bijd,dd->bijd', x.real, r)   # Real part: ac
+                        - torch.einsum('bijd,dd->bijd', x.imag, i) # Real part: -bd
+                            + rb                                        # Real bias
+                            )
 
         o1_imag = F.relu(
-            torch.einsum('bijd,dd->bijd', x.imag, r) + \  # Imaginary part: bc
-            torch.einsum('bijd,dd->bijd', x.real, i) + \  # Imaginary part: ad
-            ib  # Imaginary bias
-        )
+                    torch.einsum('bijd,dd->bijd', x.imag, r)   # Imaginary part: bc
+                        + torch.einsum('bijd,dd->bijd', x.real, i) # Imaginary part: ad
+                            + ib                                        # Imaginary bias
+                            )
 
         # Combine real and imaginary parts into complex tensor
         y = torch.stack([o1_real, o1_imag], dim=-1)  # Stack along last dimension

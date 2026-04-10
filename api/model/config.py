@@ -79,7 +79,7 @@ class PredictionModel(object):
         # Initialize model based on specified architecture
         if model_name == 'lstm':
             # Long Short-Term Memory network for sequence modeling
-            self.model = Lstm(seq_l=seq_l, n_feature=n_fea, node=num_node)
+            self.model = Lstm(seq=seq_l, n_fea=n_fea, node=num_node)
         elif model_name == 'lo':
             # Last Observation: simple baseline using last value
             self.model = Lo(pred_len=pre_len)

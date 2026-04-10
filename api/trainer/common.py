@@ -136,14 +136,16 @@ class PredictionTrainer(object):
         for _ in tqdm(range(epoch), desc='Training'):
             # Training phase
             for feat, label, extra in self.ev_dataset.train_loader:
-                torch.cuda.empty_cache()  # Clear GPU memory
+                torch.cuda.empty_cache()
+                feat = feat.to(self.ev_model.model.linear.weight.device if hasattr(self.ev_model.model, 'linear') else next(self.ev_model.model.parameters()).device, non_blocking=True)
+                label = label.to(next(self.ev_model.model.parameters()).device, non_blocking=True)
+
                 if self.ev_dataset.extra_feat is None:
-                    extra = None  # Handle case with no auxiliary features
-                
-                # Forward pass and loss computation
-                self.optim.zero_grad()  # Clear gradients
-                preds = self.ev_model.model(feat, extra)  # Model prediction
-                
+                    extra = None
+                else:
+                    extra = extra.to(next(self.ev_model.model.parameters()).device, non_blocking=True)
+                self.optim.zero_grad()
+                preds = self.ev_model.model(feat, extra)                
                 # Align shapes for loss computation
                 if preds.shape != label.shape:
                     loss = self.loss_func(preds.unsqueeze(-1), label)  # Add dimension if needed

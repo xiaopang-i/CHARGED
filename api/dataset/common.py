@@ -127,7 +127,7 @@ class EVDataset(object):
 
         # Load site metadata for selection and feature construction
         sites_info = pd.read_csv(f'{self.data_path}sites.csv', header=0)
-        sites_info = sites_info.set_index("site_id")  # Set site_id as index
+        sites_info = sites_info.set_index("site")  # Set site_id as index
         sites_info.index = sites_info.index.astype(str)  # Convert index to string type
 
         # Select subset of sites if exceeding max_sites limit

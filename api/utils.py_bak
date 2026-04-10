@@ -184,15 +184,16 @@ class CreateDataset(Dataset):
             extra_feat (torch.Tensor): Auxiliary features of shape [N, seq_l] or empty tensor.
         """
         # Transpose features to [N, seq_l] format and move to device
-        feat = self.feat[idx].transpose(0, 1)
-        label = self.label[idx]
-
+        feat = self.feat[idx].transpose(0, 1).to(self.device)
+        label = self.label[idx].to(self.device)  # Move label to device
+        
+        # Handle auxiliary features if available
         if self.extra_feat is not None:
-            ef = self.extra_feat[idx].transpose(0, 1)
+            ef = self.extra_feat[idx].transpose(0, 1).to(self.device)  # Transpose and move to device
             return feat, label, ef
-        dummy = torch.empty(0)
+        # Return empty tensor if no auxiliary features
+        dummy = torch.empty(0, device=self.device)
         return feat, label, dummy
-
 
 
 def create_rnn_data(
